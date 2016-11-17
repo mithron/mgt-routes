@@ -87,11 +87,57 @@ def resume():
     for trans in tqdm(transports, desc="Transport Types"):
         points_dict = {}
         for num in tqdm(get_nums(trans), desc="Numbers", position=1):
-            fname = os.path.join("data",'rasp',trans+'_'+num+'.json')
-            if os.path.isfile(fname):
-                with open(fname) as raspfile:
-                    full_rasp = json.load(raspfile)
-            else:
+            try:
+                fname = os.path.join("data",'rasp',trans+'_'+num+'.json')
+                if os.path.isfile(fname):
+                    with open(fname, 'r+') as rasp_file:
+                        full_rasp = json.load(rasp_file)
+                        for dow in tqdm(get_dows(trans, str(num)), desc="Days of week", position=2):
+                            for direction in tqdm(directions, desc="Directions", position=3):
+                                points = get_stops(trans, str(num), dow, direction)
+                                if num in points_dict:
+                                    points_dict[num][direction] = points 
+                                else:
+                                    points_dict[num]={ direction:points }
+                                for stop in trange(len(points), desc="Stops", position=4):
+                                    (best_from, stop_name, rasp) = get_rasp(trans, num, dow, direction, str(stop))
+                                    if (full_rasp[direction][stop]['best_from'] != best_from) or (full_rasp[direction][stop]['name'] != stop_name):
+                                        full_rasp[direction][stop]['best_from'] = best_from
+                                        full_rasp[direction][stop]['name'] = stop_name
+                                        full_rasp[direction][stop] = rasp 
+                        rasp_file.write(json.dumps(full_rasp))                                    
+                            
+                else:
+                    full_rasp = {}
+                    for dow in tqdm(get_dows(trans, str(num)), desc="Days of week", position=2):
+                        for direction in tqdm(directions, desc="Directions", position=3):
+                            full_rasp[direction] = {}
+                            points = get_stops(trans, str(num), dow, direction)
+                            if num in points_dict:
+                                points_dict[num][direction] = points 
+                            else:
+                                points_dict[num]={ direction:points }
+                            for stop in trange(len(points), desc="Stops", position=4):
+                                (best_from, stop_name, rasp) = get_rasp(trans, num, dow, direction, str(stop))
+                                full_rasp[direction][stop] = rasp 
+                                full_rasp[direction][stop]['best_from'] = best_from
+                                full_rasp[direction][stop]['name'] = stop_name
+                    with open(os.path.join("data","rasp", trans+"_"+num+".json"), "w") as rasp_file:
+                        rasp_file.write(json.dumps(full_rasp))
+            except KeyboardInterrupt:
+                with open(os.path.join("data","rasp", trans+"_"+num+".json"), "w") as rasp_file:
+                    rasp_file.write(json.dumps(full_rasp))
+                with open(os.path.join("data",trans+"_routes.json"), "w") as routes_map:
+                    routes_map.write(json.dumps(points_dict))
+                raise
+        with open(os.path.join("data",trans+"_routes.json"), "w") as routes_map:
+            routes_map.write(json.dumps(points_dict))
+            
+def initial():
+    for trans in tqdm(transports, desc="Transport Types"):
+        points_dict = {}
+        for num in tqdm(get_nums(trans), desc="Numbers", position=1):
+            try:
                 full_rasp = {}
                 for dow in tqdm(get_dows(trans, str(num)), desc="Days of week", position=2):
                     for direction in tqdm(directions, desc="Directions", position=3):
@@ -106,41 +152,26 @@ def resume():
                             full_rasp[direction][stop] = rasp 
                             full_rasp[direction][stop]['best_from'] = best_from
                             full_rasp[direction][stop]['name'] = stop_name
-                with open("data/rasp/"+trans+"_"+num+".json", "w") as rasp_file:
+                with open(os.path.join("data","rasp", trans+"_"+num+".json"), "w") as rasp_file:
                     rasp_file.write(json.dumps(full_rasp))
-    
-def initial():
-    for trans in tqdm(transports, desc="Transport Types"):
-        points_dict = {}
-        for num in tqdm(get_nums(trans), desc="Numbers", position=1):
-            full_rasp = {}
-            for dow in tqdm(get_dows(trans, str(num)), desc="Days of week", position=2):
-                for direction in tqdm(directions, desc="Directions", position=3):
-                    full_rasp[direction] = {}
-                    points = get_stops(trans, str(num), dow, direction)
-                    if num in points_dict:
-                        points_dict[num][direction] = points 
-                    else:
-                        points_dict[num]={ direction:points }
-                    for stop in trange(len(points), desc="Stops", position=4):
-                        (best_from, stop_name, rasp) = get_rasp(trans, num, dow, direction, str(stop))
-                        full_rasp[direction][stop] = rasp 
-                        full_rasp[direction][stop]['best_from'] = best_from
-                        full_rasp[direction][stop]['name'] = stop_name
-            with open("data/rasp/"+trans+"_"+num+".json", "w") as rasp_file:
-                rasp_file.write(json.dumps(full_rasp))                    
-        with open("data/"+trans+"_routes.json", "w") as routes_map:
+            except KeyboardInterrupt:
+                with open(os.path.join("data","rasp", trans+"_"+num+".json"), "w") as rasp_file:
+                    rasp_file.write(json.dumps(full_rasp))
+                with open(os.path.join("data",trans+"_routes.json"), "w") as routes_map:
+                    routes_map.write(json.dumps(points_dict))
+                raise
+        with open(os.path.join("data",trans+"_routes.json"), "w") as routes_map:
             routes_map.write(json.dumps(points_dict))
 
    
 def main():
     
-    if os.path.isdir('data') and os.path.isdir(os.path.join('data', 'rasp'):
+    if os.path.isdir('data') and os.path.isdir(os.path.join('data', 'rasp')):
         resume()
     else:
         try:
             os.mkdir('data')
-            os.mkdir(os.path.join('data', 'rasp')
+            os.mkdir(os.path.join('data', 'rasp'))
         except:
             pass
         initial() 
