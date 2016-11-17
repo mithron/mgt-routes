@@ -4,9 +4,17 @@ import os, sys, logging
 import argparse
 import json
 from datetime import datetime
+#from urllib.parse import urlencode
+
 
 from bs4 import BeautifulSoup as bs
+
 parser = "lxml"
+
+
+transports = ["avto", "trol", "tram"]
+directions = ["AB", "BA"]
+
 
 
 def get_nums(trans="avto"):
@@ -15,16 +23,21 @@ def get_nums(trans="avto"):
         return resp.text.split("\n")
         
 def get_stops(trans="avto",num="0",dow='1111100',direction="AB"):
-    resp = requests.get("http://mosgortrans.org/pass3/request.ajax.php?list=waypoints&type="+trans+'&way='+str(num)+
-                            '&date='+dow+'&direction='+direction)
+    # Expert: source encoding: win1251 displayed as: utf8  postfilter: urlencoded
+    data = {'type': trans, 'way': str(num).encode('cp1251'), 'date': dow, 'direction':direction}
+    resp = requests.get("http://mosgortrans.org/pass3/request.ajax.php?list=waypoints&",params=data)
     return resp.text.split('\n')[:-1]
     
 def get_dows(trans="avto",num="0"):
-    resp = requests.get("http://mosgortrans.org/pass3/request.ajax.php?list=days&type="+trans+"&way="+str(num))
+     # Expert: source encoding: win1251 displayed as: utf8  postfilter: urlencoded
+    data = {'type': trans, 'way': str(num).encode('cp1251')}
+    resp = requests.get("http://mosgortrans.org/pass3/request.ajax.php?list=days&", params=data)
     return resp.text.split('\n')[:-1]
-    
+
 def get_rasp(trans="avto", num="0", dow='1111100', direction='BA', stop = "0"):
-    resp = requests.get("http://mosgortrans.org/pass3/shedule.php?type="+trans+"&way="+str(num)+"&date="+dow+"&direction="+direction+"&waypoint="+str(stop))
+     # Expert: source encoding: win1251 displayed as: utf8  postfilter: urlencoded
+    data = {'type': trans, 'way': str(num).encode('cp1251'), 'date': dow, 'direction':direction, 'waypoint':str(stop)}
+    resp = requests.get("http://mosgortrans.org/pass3/shedule.php?", params=data)
     body = bs(resp.text, parser)
     
     try:
@@ -38,11 +51,18 @@ def get_rasp(trans="avto", num="0", dow='1111100', direction='BA', stop = "0"):
         logging.error("table len is %s" % str(len(tables)))
         logging.error(resp.url)
         return False, False
+   
     try:
         best_from = tables[0].findAll("h3")[2].text
     except:
         logging.warn("No start date found for %s %s %s %s %s, using now" % (trans, str(num), dow, direction, str(stop)))
         best_from = datetime.now().date().strftime("%d %B %Y")
+   
+    try:
+        name = body.select('table > tr:nth-of-type(2) > td > h2')[0].text
+    except:
+        logging.warn("No name found for %s %s %s %s %s, using number" % (trans, str(num), dow, direction, str(stop)))
+        name = str(stop)
     
     times = {}
     
@@ -61,12 +81,35 @@ def get_rasp(trans="avto", num="0", dow='1111100', direction='BA', stop = "0"):
         logging.error("Error parsing data for %s %s %s %s %s" % (trans, str(num), dow, direction, str(stop)))
         
         
-    return best_from, times
-   
-def main():
-    transports = ["avto", "trol", "tram"]
-    directions = ["AB", "BA"]
+    return best_from, name, times
+
+def resume():
+    for trans in tqdm(transports, desc="Transport Types"):
+        points_dict = {}
+        for num in tqdm(get_nums(trans), desc="Numbers", position=1):
+            fname = os.path.join("data",'rasp',trans+'_'+num+'.json')
+            if os.path.isfile(fname):
+                with open(fname) as raspfile:
+                    full_rasp = json.load(raspfile)
+            else:
+                full_rasp = {}
+                for dow in tqdm(get_dows(trans, str(num)), desc="Days of week", position=2):
+                    for direction in tqdm(directions, desc="Directions", position=3):
+                        full_rasp[direction] = {}
+                        points = get_stops(trans, str(num), dow, direction)
+                        if num in points_dict:
+                            points_dict[num][direction] = points 
+                        else:
+                            points_dict[num]={ direction:points }
+                        for stop in trange(len(points), desc="Stops", position=4):
+                            (best_from, stop_name, rasp) = get_rasp(trans, num, dow, direction, str(stop))
+                            full_rasp[direction][stop] = rasp 
+                            full_rasp[direction][stop]['best_from'] = best_from
+                            full_rasp[direction][stop]['name'] = stop_name
+                with open("data/rasp/"+trans+"_"+num+".json", "w") as rasp_file:
+                    rasp_file.write(json.dumps(full_rasp))
     
+def initial():
     for trans in tqdm(transports, desc="Transport Types"):
         points_dict = {}
         for num in tqdm(get_nums(trans), desc="Numbers", position=1):
@@ -80,12 +123,28 @@ def main():
                     else:
                         points_dict[num]={ direction:points }
                     for stop in trange(len(points), desc="Stops", position=4):
-                        (best_from, rasp) = get_rasp(trans, num, dow, direction, str(stop))
+                        (best_from, stop_name, rasp) = get_rasp(trans, num, dow, direction, str(stop))
                         full_rasp[direction][stop] = rasp 
+                        full_rasp[direction][stop]['best_from'] = best_from
+                        full_rasp[direction][stop]['name'] = stop_name
             with open("data/rasp/"+trans+"_"+num+".json", "w") as rasp_file:
                 rasp_file.write(json.dumps(full_rasp))                    
         with open("data/"+trans+"_routes.json", "w") as routes_map:
             routes_map.write(json.dumps(points_dict))
+
+   
+def main():
+    
+    if os.path.isdir('data') and os.path.isdir(os.path.join('data', 'rasp'):
+        resume()
+    else:
+        try:
+            os.mkdir('data')
+            os.mkdir(os.path.join('data', 'rasp')
+        except:
+            pass
+        initial() 
+   
         
 
     
