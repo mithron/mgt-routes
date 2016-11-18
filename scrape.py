@@ -33,6 +33,10 @@ def get_dows(trans="avto",num="0"):
     data = {'type': trans, 'way': str(num).encode('cp1251')}
     resp = requests.get("http://mosgortrans.org/pass3/request.ajax.php?list=days&", params=data)
     return resp.text.split('\n')[:-1]
+    
+def get_stop_name(body):
+    pass
+    
 
 def get_rasp(trans="avto", num="0", dow='1111100', direction='BA', stop = "0"):
      # Expert: source encoding: win1251 displayed as: utf8  postfilter: urlencoded
@@ -105,7 +109,7 @@ def resume():
                                         full_rasp[direction][stop]['best_from'] = best_from
                                         full_rasp[direction][stop]['name'] = stop_name
                                         full_rasp[direction][stop] = rasp 
-                        rasp_file.write(json.dumps(full_rasp))                                    
+                        json.dump(full_rasp, rasp_file, ensure_ascii=False)                                    
                             
                 else:
                     full_rasp = {}
@@ -123,15 +127,15 @@ def resume():
                                 full_rasp[direction][stop]['best_from'] = best_from
                                 full_rasp[direction][stop]['name'] = stop_name
                     with open(os.path.join("data","rasp", trans+"_"+num+".json"), "w") as rasp_file:
-                        rasp_file.write(json.dumps(full_rasp))
+                        json.dump(full_rasp, rasp_file, ensure_ascii=False)
             except KeyboardInterrupt:
                 with open(os.path.join("data","rasp", trans+"_"+num+".json"), "w") as rasp_file:
-                    rasp_file.write(json.dumps(full_rasp))
+                    json.dump(full_rasp, rasp_file, ensure_ascii=False)
                 with open(os.path.join("data",trans+"_routes.json"), "w") as routes_map:
-                    routes_map.write(json.dumps(points_dict))
+                    json.dump(points_dict,routes_map, ensure_ascii=False)
                 raise
         with open(os.path.join("data",trans+"_routes.json"), "w") as routes_map:
-            routes_map.write(json.dumps(points_dict))
+            json.dump(points_dict,routes_map, ensure_ascii=False)
             
 def initial():
     for trans in tqdm(transports, desc="Transport Types"):
@@ -153,15 +157,15 @@ def initial():
                             full_rasp[direction][stop]['best_from'] = best_from
                             full_rasp[direction][stop]['name'] = stop_name
                 with open(os.path.join("data","rasp", trans+"_"+num+".json"), "w") as rasp_file:
-                    rasp_file.write(json.dumps(full_rasp))
+                    json.dump(full_rasp, rasp_file, ensure_ascii=False)
             except KeyboardInterrupt:
                 with open(os.path.join("data","rasp", trans+"_"+num+".json"), "w") as rasp_file:
-                    rasp_file.write(json.dumps(full_rasp))
+                    json.dump(full_rasp, rasp_file, ensure_ascii=False)
                 with open(os.path.join("data",trans+"_routes.json"), "w") as routes_map:
-                    routes_map.write(json.dumps(points_dict))
+                    json.dump(points_dict,routes_map, ensure_ascii=False)
                 raise
         with open(os.path.join("data",trans+"_routes.json"), "w") as routes_map:
-            routes_map.write(json.dumps(points_dict))
+            json.dump(points_dict,routes_map, ensure_ascii=False)
 
    
 def main():
