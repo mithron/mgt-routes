@@ -22,13 +22,13 @@ def get_nums(trans="avto"):
         resp = requests.get("http://mosgortrans.org/pass3/request.ajax.php?list=ways&type=" + trans)
         return resp.text.split("\n")
         
-def get_stops(trans="avto",num="0",dow='1111100',direction="AB"):
+def get_stops(trans="avto",num="31",dow='1111100',direction="AB"):
     # Expert: source encoding: win1251 displayed as: utf8  postfilter: urlencoded
     data = {'type': trans, 'way': str(num).encode('cp1251'), 'date': dow, 'direction':direction}
     resp = requests.get("http://mosgortrans.org/pass3/request.ajax.php?list=waypoints&",params=data)
     return resp.text.split('\n')[:-1]
     
-def get_dows(trans="avto",num="0"):
+def get_dows(trans="avto",num="31"):
      # Expert: source encoding: win1251 displayed as: utf8  postfilter: urlencoded
     data = {'type': trans, 'way': str(num).encode('cp1251')}
     resp = requests.get("http://mosgortrans.org/pass3/request.ajax.php?list=days&", params=data)
@@ -38,7 +38,7 @@ def get_stop_name(body):
     pass
     
 
-def get_rasp(trans="avto", num="0", dow='1111100', direction='BA', stop = "0"):
+def get_rasp(trans="avto", num="31", dow='1111100', direction='BA', stop = "0"):
      # Expert: source encoding: win1251 displayed as: utf8  postfilter: urlencoded
     data = {'type': trans, 'way': str(num).encode('cp1251'), 'date': dow, 'direction':direction, 'waypoint':str(stop)}
     resp = requests.get("http://mosgortrans.org/pass3/shedule.php?", params=data)
