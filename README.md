@@ -1,4 +1,6 @@
-# mgt-routes
+# mgt-routes 
+
+<img src="https://api.travis-ci.org/mithron/mgt-routes.svg?branch=master" /> 
 
 Python scripts to get Moscow routes timetables  data from http://mosgortrans.org/pass3 . 
 
